@@ -1,0 +1,25 @@
+// https://www.tortilla.academy/Urigo/WhatsApp-Clone-Tutorial/master/next/step/3
+import express from 'express';
+
+import { chats } from './db';
+import cors from 'cors';
+
+const app = express();
+
+app.use(cors());
+// GET /_ping route. This route will be used to determine whether the server is up and running, and how fast the connection is based on the response time. For every request sent to this route, we should expect a response saying "pong". Some call it "heartbeat", because this route is being tested repeatedly by the hosting machine to check if it's alive, just like a heartbeat in a way.
+// Test it with `curl localhost:4000/_ping`
+
+app.get('/_ping', (req, res) => {
+  res.send('pong');
+});
+
+app.get('/chats', (req, res) => {
+  res.json(chats);
+});
+
+const port = process.env.PORT || 4000;
+
+app.listen(port, () => {
+  console.log(`Server is listening on port ${port}`);
+});
