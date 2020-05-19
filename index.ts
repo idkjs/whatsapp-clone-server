@@ -1,8 +1,6 @@
 // https://www.tortilla.academy/Urigo/WhatsApp-Clone-Tutorial/master/next/step/4
 import { ApolloServer, gql } from 'apollo-server-express';
 import express from 'express';
-
-import { chats } from './db';
 import schema from "./schema";
 import cors from 'cors';
 
@@ -15,7 +13,6 @@ app.use(express.json());
 
 app.get('/_ping', (req, res) => {
   res.send('pong');
-  res.json(chats);
 });
 
 const server = new ApolloServer({ schema });
