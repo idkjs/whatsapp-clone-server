@@ -150,6 +150,56 @@ describe('Query.chat', () => {
 });
 ```
 
+Test with [`gq`](https://github.com/hasura/graphqurl):
+
+```sh
+gq http://localhost:4000/graphql \
+  -q 'query { chat(chatId: 1) {
+            id
+            name
+            picture
+            lastMessage {
+              id
+              content
+              createdAt
+            }
+          }
+        }' 
+```
+```sh
+~/Github/whatsapp-clone-server with-graphql
+❯ gq http://localhost:4000/graphql \
+  -q 'query {
+          chat(chatId: 1) {
+            id
+            name
+            picture
+            lastMessage {
+              id
+              content
+              createdAt
+            }
+          }
+        }'
+Executing query... done
+{
+  "data": {
+    "chat": {
+      "id": "1",
+      "name": "Ethan Gonzalez",
+      "picture": "https://randomuser.me/api/portraits/thumb/men/1.jpg",
+      "lastMessage": {
+        "id": "1",
+        "content": "You on your way?",
+        "createdAt": "2018-12-31T12:20:00.000Z",
+        "__typename": "Message"
+      },
+      "__typename": "Chat"
+    }
+  }
+}
+```
+
 Test it with `yarn test`
 
 ```sh
