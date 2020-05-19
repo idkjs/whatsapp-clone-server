@@ -1,0 +1,11 @@
+{
+  "name": "whatsapp-clone-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Alain Armand <aarmand.inbox@gmail.com>",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "node index.js"
+  }
+}
