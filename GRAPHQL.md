@@ -1,54 +1,4 @@
-# WhatsAppServer
-
-## [CORS](https://www.tortilla.academy/Urigo/WhatsApp-Clone-Tutorial/master/next/step/3)
-
-> Unlike the previous route, we used the .json() method this time around to send a response. This will simply stringify the given JSON and set the right headers. Similarly to the client, we've defined the db mock in a dedicated file, as this is easier to maintain and look at.
-
-> It's also recommended to connect a middleware called cors which will enable cross-origin requests. Without it we will only be able to make requests in localhost, something which is likely to limit us in the future because we would probably host our server somewhere separate than the client application. Without it it will also be impossible to call the server from our client app. Let's install the cors library and load it with the Express middleware() function:
-
-```sh
-$ yarn add cors
-
-# and its Typescript types:
-
-$ yarn add --dev @types/cors
-```
-
-## Use CORS
-
-```ts
-import cors from 'cors';
-import express from 'express';
-import { chats } from './db';
-
-const app = express();
-
-app.use(cors());
-
-app.get('/_ping', (req, res) => {
-  res.send('pong');
-});
-
-app.get('/chats', (req, res) => {
-  res.json(chats);
-});
-
-const port = process.env.PORT || 4000;
-
-app.listen(port, () => {
-  console.log(`Server is listening on port ${port}`);
-});
-```
-
-## Client Step 3.1: Define server URL
-
-Add `.env` in root with `REACT_APP_SERVER_URL=http://localhost:4000` in your client app.
-
-## How `REACT_APP_SERVER_URL` Works
-
-> This will make our server's URL available under the process.env.REACT_APP_SERVER_URL member expression and it will be replaced with a fixed value at build time, just like macros. The .env file is a file which will automatically be loaded to process.env by the dotenv NPM package. react-scripts then filters environment variables which have a REACT_APP_ prefix and provides the created JSON to a Webpack plugin called DefinePlugin, which will result in the macro effect.
-
-# [ADDING GRAPHQL](https://www.tortilla.academy/Urigo/WhatsApp-Clone-Tutorial/master/next/step/4)
+# WhatsAppServer [ADDING GRAPHQL](https://www.tortilla.academy/Urigo/WhatsApp-Clone-Tutorial/master/next/step/4)
 
 ## [Graphql Inspector](https://graphql-inspector.com/docs/installation)
 
@@ -58,6 +8,61 @@ Add `.env` in root with `REACT_APP_SERVER_URL=http://localhost:4000` in your cli
 - name: GraphQL Inspector
   uses: kamilkisiela/graphql-inspector@v2.0.0
 ```
+
+## Setup Apollo Server
+
+Install the deps:
+```sh
+`yarn add apollo-server-express graphql`
+`yarn add --dev @types/graphql`
+```
+
+`@types/graphql` - TypeScript definitions. Notice that we didn't need to install Apollo's types library. That is because Apollo themselves writes their source code in Typescript so we get a ready Typescript code directly from their library.
+
+
+```ts
+// modify index.ts
+import { ApolloServer, gql } from 'apollo-server-express';
+import cors from 'cors';
+import express from 'express';
+import { chats } from './db';
+import schema from './schema';
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.get('/_ping', (req, res) => {
+  res.send('pong');
+});
+
+app.get('/chats', (req, res) => {
+  res.json(chats);
+});
+
+const server = new ApolloServer({ schema });
+
+server.applyMiddleware({
+  app,
+  path: '/graphql',
+});
+
+const port = process.env.PORT || 4000;
+
+app.listen(port, () => {
+  console.log(`Server is listening on port ${port}`);
+});
+```
+
+As you can see, the middleware requires a schema. A schema is composed mainly out of 2 fields:
+
+- typeDefs (type definitions) - the schema types we wrote earlier this chapter for chats.
+- resolvers - Functions that will provide the data for each field in typeDefs.
+
+**You can think about our resolver functions as boxes on the shelf which we prepare for later, when GraphQL will execute them and for the schema as the label that describe those functions:**
+
+This is why in `reasonml` we need the `introspectionSchema.json`? So that we have all the possible types available to us. We need it here too though, so...
 
 ## Custom Scalars
 
@@ -101,10 +106,14 @@ type Query {
 }
 ```
 
-## Server Step 2.2: Create a basic GraphQL schema
+Chats Query is even more interesting case with two exclamation marks [Chat!]!.
 
-`yarn add graphql-tools graphql-import graphql-scalars apollo-server-express graphql`
-`yarn add --dev @types/graphql`
+The outer exclamation mark means that if you run this query it will **always return an array of zero or more items (never null)** and inner exclamation mark means that every item of returned array will be of type Chat and never be `null`.
+
+
+## Server Step 2.2: Create a basic GraphQL schema resolver
+
+`yarn add graphql-tools graphql-import graphql-scalars`
 
 `graphql-tools`is a library with a set of utilities that will help us create a schema that will be compatible with Apollo's API:
 
@@ -126,7 +135,20 @@ const resolvers = {
 
 export default resolvers;
 ```
+## Generate Schema from `schema/typeDefs.graphql` and `schema/resolvers.ts`
 
+```ts
+// schema/index.ts
+import { importSchema } from 'graphql-import';
+import { makeExecutableSchema } from 'graphql-tools';
+import resolvers from './resolvers';
+
+const typeDefs = importSchema('schema/typeDefs.graphql');
+
+export default makeExecutableSchema({ resolvers, typeDefs });
+
+
+```
 ## Server Step 2.3: Resolve Chat.lastMessage
 
 There's one optimization however, that we should make in our DB. Right now, each chat document has a direct reference to a message via the lastMessage field. Practically speaking, this is NOT how the data sits in the DB. The lastMessage should only holds the ID for the correlated message, and then in the Node.JS app, we should resolve it according to our needs. Let's make the appropriate changes in the resolver of the lastMessage field:
@@ -183,6 +205,23 @@ curl \
   -H "Content-Type: application/json" \
   --data '{ "query": "{ chats { id name picture lastMessage { id content createdAt } } }" }' \
   localhost:4000/graphql
+```
+
+Header `Content-Type: application/graphql` doesnt work if no `bodyparser`.
+
+```sh
+curl \
+  -X POST \
+  -H "Content-Type: application/graphql" \
+  --data '{ "query": "{ chats { id name picture lastMessage { id content createdAt } } }" }' \
+  localhost:4000/graphql
+
+#   ❯ curl \
+#   -X POST \
+#   -H "Content-Type: application/graphql" \
+#   --data '{ "query": "{ chats { id name picture lastMessage { id content createdAt } } }" }' \
+#   localhost:4000/graphql
+# POST body missing. Did you forget use body-parser middleware?
 ```
 
 The one-liner version of it with a [`$graphqurl`](https://github.com/hasura/graphqurl) command looks like so:
