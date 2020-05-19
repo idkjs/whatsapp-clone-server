@@ -191,3 +191,61 @@ The one-liner version of it with a [`$graphqurl`](https://github.com/hasura/grap
 gq http://localhost:4000/graphql \
   -q 'query { chats { id name picture lastMessage { id content createdAt } } }' 
 ```
+
+# Testing
+
+This will basically install Jest and make it useable with TypeScript. Install
+`yarn add --dev jest @types/jest ts-jest`.
+
+In addition, we will need to specify the file pattern that we would like to transform with ts-jest, by adding the following sections to `package.json`:
+
+```json
+{
+    "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.(js|jsx|ts|tsx)$": "<rootDir>/node_modules/ts-jest"
+    }
+  }
+}
+```
+
+## Testing Chats with Mocks
+
+Now we're gonna test the chats query in our GraphQL schema. To do so, we will setup an Apollo Client and send a query request to our back-end, and then we will match the received response with a pre-defined snapshot. Luckily, we don't have to set an actual client, since the tests and the implementation of the back-end live right next to each other, thus, we will install a package which will help us achieving so:
+
+```sh
+yarn add --dev apollo-server-testing
+```
+Define the test suite under the `tests/queries` folder in a file called `getChats.test.ts`:
+
+In the test function, we create a new instance of the Apollo-GraphQL server using our schema, and we query some data against it thanks to the fake client created by [apollo-server-testing](https://www.npmjs.com/package/apollo-server-testing).
+
+The .toMatchSnapshot() matcher will call the toString() method on the examined object and will test it against a predefined snapshot. The snapshot will automatically be created once we run the test for the first time and will be stored under the __snapshot__ directory. This means that the first test run will always pass. This is useful because you can later on observe and adjust manually the snapshot manually without having to write it from scratch.
+
+Do test run for the server: `yarn test`
+
+```sh
+~/Github/whatsapp-clone-server
+❯ yarn test
+yarn run v1.22.4
+$ jest
+ PASS  tests/queries/getChats.test.ts (9.35 s)
+  Query.chats
+    ✓ should fetch all chats (38 ms)
+
+ › 1 snapshot written.
+Snapshot Summary
+ › 1 snapshot written from 1 test suite.
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   1 written, 1 total
+Time:        11.508 s
+Ran all test suites.
+✨  Done in 14.45s.
+```
+
+Open [tests/queries/__snapshots__/getChats.test.ts.snap](./tests/queries/__snapshots__/getChats.test.ts.snap) to see the produced snapshot.
