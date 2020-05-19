@@ -39,3 +39,12 @@ app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
 });
 ```
+
+## Client Step 3.1: Define server URL
+
+Add `.env` in root with `REACT_APP_SERVER_URL=http://localhost:4000` in your client app.
+
+## How `REACT_APP_SERVER_URL` Works
+
+> This will make our server's URL available under the process.env.REACT_APP_SERVER_URL member expression and it will be replaced with a fixed value at build time, just like macros. The .env file is a file which will automatically be loaded to process.env by the dotenv NPM package. react-scripts then filters environment variables which have a REACT_APP_ prefix and provides the created JSON to a Webpack plugin called DefinePlugin, which will result in the macro effect.
+
